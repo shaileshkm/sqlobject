@@ -2,7 +2,7 @@
 # Other branches can allow themselves.
 branches:
   only:
-    - master
+    - pypostgresql
 
 # Prefer docker container with setuid/sudo
 sudo: required
@@ -15,102 +15,17 @@ python:
 cache: pip
 
 addons:
-  apt:
-    packages:
-      - python-egenix-mxdatetime
-      - python-mysqldb
-      - python-psycopg2
-      - python3-psycopg2
-      - firebird2.5-super
   postgresql: "9.4"
 
 env:
-  - TOXENV=py27-mysqldb
-  - TOXENV=py34-mysqlclient
-  - TOXENV=py35-mysqlclient
-  - TOXENV=py36-mysqlclient
-  - TOXENV=py27-mysql-connector
-  - TOXENV=py34-mysql-connector
-  - TOXENV=py35-mysql-connector
-  - TOXENV=py36-mysql-connector
-  - TOXENV=py27-mysql-oursql
-  - TOXENV=py27-pymysql
-  - TOXENV=py34-pymysql
-  - TOXENV=py35-pymysql
-  - TOXENV=py36-pymysql
-  - TOXENV=py27-postgres-psycopg
-  - TOXENV=py34-postgres-psycopg
-  - TOXENV=py35-postgres-psycopg
-  - TOXENV=py36-postgres-psycopg
-  - TOXENV=py27-postgres-pygresql
-  - TOXENV=py34-postgres-pygresql
-  - TOXENV=py35-postgres-pygresql
-  - TOXENV=py36-postgres-pygresql
   - TOXENV=py34-pypostgresql
-  - TOXENV=py35-pypostgresql
-  - TOXENV=py36-pypostgresql
-  - TOXENV=py27-postgres-pg8000
-  - TOXENV=py34-postgres-pg8000
-  - TOXENV=py35-postgres-pg8000
-  - TOXENV=py36-postgres-pg8000
-  - TOXENV=py27-sqlite
-  - TOXENV=py34-sqlite
-  - TOXENV=py35-sqlite
-  - TOXENV=py36-sqlite
-  - TOXENV=py27-sqlite-memory
-  - TOXENV=py34-sqlite-memory
-  - TOXENV=py35-sqlite-memory
-  - TOXENV=py36-sqlite-memory
-  - TOXENV=py27-flake8
-  - TOXENV=py34-flake8
-  - TOXENV=py27-firebird-fdb
-  - TOXENV=py34-firebird-fdb
-  - TOXENV=py35-firebird-fdb
-  - TOXENV=py36-firebird-fdb
-  - TOXENV=py27-firebirdsql
-  - TOXENV=py34-firebirdsql
-  - TOXENV=py35-firebirdsql
-  - TOXENV=py36-firebirdsql
 
 matrix:
-  allow_failures:
-    - env: TOXENV=py27-postgres-pg8000
-    - env: TOXENV=py27-firebird-fdb
-    - env: TOXENV=py34-firebird-fdb
-    - env: TOXENV=py35-firebird-fdb
-    - env: TOXENV=py36-firebird-fdb
-    - env: TOXENV=py27-firebirdsql
-    - env: TOXENV=py34-firebirdsql
-    - env: TOXENV=py35-firebirdsql
-    - env: TOXENV=py36-firebirdsql
   fast_finish: true
 
-before_install:
-  # Start the firebird database server.
-  # We use firebird-super, so there's none of the inetd configuration
-  # required by firebird-classic.
-  # We also create a test user for the firebird test and
-  # create a script that can be fed into isql-fb
-  # to create the test database.
-  # Copied password initializtion from
-  # https://github.com/xdenser/node-firebird-libfbclient/blob/master/.travis.yml
-  - if [[ $TOXENV = *firebird* ]]; then
-      sudo sed -i /etc/default/firebird2.5 -e 's/=no/=yes/' &&
-      sudo /etc/init.d/firebird2.5-super start && sleep 5 &&
-      sudo /bin/bash -c '(export FB_VER="2.5"; export FB_FLAVOUR="super";source /usr/share/firebird2.5-common/functions.sh; writeNewPassword masterkey)' &&
-      sudo gsec -user sysdba -pass masterkey -add test -pw test &&
-      sudo /bin/bash -c "echo \"CREATE DATABASE 'localhost:/tmp/test.fdb';\" > /var/lib/firebird/create_test_db" &&
-      sudo chmod 644 /var/lib/firebird/create_test_db;
-    fi
-
-install: travis_retry pip install tox coveralls codecov ppu
+install: travis_retry pip install tox ppu
 
 script: tox -e ${TOXENV}
-
-after_success:
-    - cd sqlobject
-    - coveralls
-    - codecov
 
 before_cache:
   - remove-old-files.py -o 180 ~/.cache/pip
